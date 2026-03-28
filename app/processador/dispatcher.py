@@ -51,7 +51,7 @@ async def despachar(payload: PayloadWebhook) -> None:
 
     elif tipo in _TIPOS_AUDIO:
         try:
-            dados = await baixar_midia_mensagem(message)
+            dados = await baixar_midia_mensagem(payload.data.key.model_dump(), message)
         except Exception:
             await enviar_texto(chat_id, "Nao consegui entender o audio, pode digitar?")
             return
@@ -66,7 +66,7 @@ async def despachar(payload: PayloadWebhook) -> None:
     elif tipo in _TIPOS_IMAGEM:
         mime = message.get("imageMessage", {}).get("mimetype", "image/jpeg")
         try:
-            dados = await baixar_midia_mensagem(message)
+            dados = await baixar_midia_mensagem(payload.data.key.model_dump(), message)
         except Exception:
             await enviar_texto(chat_id, "Nao consegui ler a imagem, tente novamente.")
             return

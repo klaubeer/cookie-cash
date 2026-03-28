@@ -36,10 +36,10 @@ async def baixar_midia(url: str) -> bytes:
             raise
 
 
-async def baixar_midia_mensagem(message: dict[str, Any]) -> bytes:
+async def baixar_midia_mensagem(key: dict[str, Any], message: dict[str, Any]) -> bytes:
     """Usa o endpoint da Evolution API para obter mídia de uma mensagem como base64."""
     url = f"{config.evolution_api_url}/chat/getBase64FromMediaMessage/{config.evolution_instance}"
-    body = {"message": {"message": message}, "convertToMp4": False}
+    body = {"message": {"key": key, "message": message}, "convertToMp4": False}
     async with httpx.AsyncClient(timeout=30) as client:
         try:
             resp = await client.post(url, json=body, headers=_HEADERS)
