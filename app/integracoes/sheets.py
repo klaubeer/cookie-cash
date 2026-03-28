@@ -79,9 +79,50 @@ def _obter_resumo_mes_sync() -> dict:
     }
 
 
+def _configurar_resumo_sync() -> None:
+    servico = _servico()
+    sid = config.google_sheets_id
+
+    # Cabeçalho Lançamentos
+    servico.spreadsheets().values().update(
+        spreadsheetId=sid,
+        range="Lançamentos!A1:F1",
+        valueInputOption="USER_ENTERED",
+        body={"values": [["Data", "Tipo", "Descrição", "Valor (R$)", "Origem", "Timestamp"]]},
+    ).execute()
+
+    # Aba Resumo
+    valores_resumo = [
+        ["Cookie Finance — Resumo"],                                                          # A1
+        [],                                                                                    # A2
+        [],                                                                                    # A3
+        ["Período", "Mês atual"],                                                             # A4:B4
+        ["De", '=IFS(B4="Mês atual",DATE(YEAR(TODAY()),MONTH(TODAY()),1),B4="Ano atual",DATE(YEAR(TODAY()),1,1),B4="Últimos 7 dias",TODAY()-7,B4="Últimos 30 dias",TODAY()-30)'],  # A5:B5
+        ["Até", '=IFS(B4="Mês atual",EOMONTH(TODAY(),0),B4="Ano atual",DATE(YEAR(TODAY()),12,31),B4="Últimos 7 dias",TODAY(),B4="Últimos 30 dias",TODAY())'],                    # A6:B6
+        [],                                                                                    # A7
+        [],                                                                                    # A8
+        [],                                                                                    # A9
+        ["RECEITAS", '=SUMPRODUCT((Lançamentos!$A$2:$A$1000>=$B$5)*(Lançamentos!$A$2:$A$1000<=$B$6)*(Lançamentos!$B$2:$B$1000="RECEITA")*Lançamentos!$D$2:$D$1000)'],          # A10:B10
+        ["DESPESAS", '=SUMPRODUCT((Lançamentos!$A$2:$A$1000>=$B$5)*(Lançamentos!$A$2:$A$1000<=$B$6)*(Lançamentos!$B$2:$B$1000="DESPESA")*Lançamentos!$D$2:$D$1000)'],          # A11:B11
+        [],                                                                                    # A12
+        ["SALDO", "=B10-B11"],                                                                # A13:B13
+    ]
+    servico.spreadsheets().values().update(
+        spreadsheetId=sid,
+        range="Resumo!A1:B13",
+        valueInputOption="USER_ENTERED",
+        body={"values": valores_resumo},
+    ).execute()
+    logger.info("Aba Resumo configurada com sucesso")
+
+
 async def adicionar_lancamento(transacao: Transacao) -> None:
     await asyncio.to_thread(_adicionar_lancamento_sync, transacao)
 
 
 async def obter_resumo_mes() -> dict:
     return await asyncio.to_thread(_obter_resumo_mes_sync)
+
+
+async def configurar_resumo() -> None:
+    await asyncio.to_thread(_configurar_resumo_sync)
