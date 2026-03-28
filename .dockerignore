@@ -1,0 +1,9 @@
+.env
+.env.*
+.git
+__pycache__
+*.pyc
+*.pyo
+*.xlsx
+gerar_planilha.py
+*.md
