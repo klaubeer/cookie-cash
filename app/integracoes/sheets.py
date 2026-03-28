@@ -79,16 +79,19 @@ def _obter_resumo_mes_sync() -> dict:
     }
 
 
-def _ultimos_12_meses() -> list[str]:
+def _meses_desde_inicio() -> list[str]:
+    """Gera meses de 03/2026 até hoje + 2 meses à frente."""
+    inicio = date(2026, 3, 1)
     hoje = date.today()
+    fim = date(hoje.year + (1 if hoje.month > 10 else 0), (hoje.month + 2) % 12 or 12, 1)
     meses = []
-    for i in range(12):
-        mes = hoje.month - i
-        ano = hoje.year
-        if mes <= 0:
-            mes += 12
-            ano -= 1
-        meses.append(f"{mes:02d}/{ano}")
+    atual = inicio
+    while atual <= fim:
+        meses.append(f"{atual.month:02d}/{atual.year}")
+        mes = atual.month + 1
+        ano = atual.year + (1 if mes > 12 else 0)
+        mes = mes if mes <= 12 else 1
+        atual = date(ano, mes, 1)
     return meses
 
 
@@ -109,9 +112,10 @@ def _configurar_resumo_sync() -> None:
             body={"values": [["Data", "Tipo", "Descrição", "Valor (R$)", "Origem", "Timestamp"]]},
         ).execute()
 
-    # Gera lista dos últimos 12 meses no formato MM/YYYY
-    meses = _ultimos_12_meses()
-    mes_atual = meses[0]
+    # Gera lista de 03/2026 até hoje + 2 meses
+    meses = _meses_desde_inicio()
+    hoje = date.today()
+    mes_atual = f"{hoje.month:02d}/{hoje.year}"
 
     # Fórmulas — B2 contém o mês selecionado no formato MM/YYYY
     # VALUE(LEFT(B2;2)) = mês, VALUE(RIGHT(B2;4)) = ano
@@ -126,6 +130,9 @@ def _configurar_resumo_sync() -> None:
         range="Resumo!A1:Z50",
     ).execute()
 
+    receitas_total = '=SUMIF(Lançamentos!$B$2:$B$500;"RECEITA";Lançamentos!$D$2:$D$500)'
+    despesas_total = '=SUMIF(Lançamentos!$B$2:$B$500;"DESPESA";Lançamentos!$D$2:$D$500)'
+
     valores_resumo = [
         ["Cookie Finance — Resumo", ""],  # A1
         ["Período",  mes_atual],          # A2:B2  ← dropdown aqui
@@ -136,10 +143,16 @@ def _configurar_resumo_sync() -> None:
         ["DESPESAS", despesas],           # A7:B7
         ["", ""],                         # A8
         ["SALDO",    "=B6-B7"],          # A9:B9
+        ["", ""],                         # A10
+        ["TOTAL GERAL", ""],             # A11
+        ["RECEITAS", receitas_total],    # A12:B12
+        ["DESPESAS", despesas_total],    # A13:B13
+        ["", ""],                         # A14
+        ["SALDO",    "=B12-B13"],        # A15:B15
     ]
     servico.spreadsheets().values().update(
         spreadsheetId=sid,
-        range="Resumo!A1:B9",
+        range="Resumo!A1:B15",
         valueInputOption="USER_ENTERED",
         body={"values": valores_resumo},
     ).execute()
