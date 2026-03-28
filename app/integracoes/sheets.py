@@ -120,15 +120,21 @@ def _configurar_resumo_sync() -> None:
     receitas = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$3)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$4)*(Lançamentos!$B$2:$B$500="RECEITA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
     despesas = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$3)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$4)*(Lançamentos!$B$2:$B$500="DESPESA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
 
+    # Limpa a aba antes de reescrever para não deixar lixo de writes anteriores
+    servico.spreadsheets().values().clear(
+        spreadsheetId=sid,
+        range="Resumo!A1:Z50",
+    ).execute()
+
     valores_resumo = [
         ["Cookie Finance — Resumo", ""],  # A1
         ["Período",  mes_atual],          # A2:B2  ← dropdown aqui
         ["De",       de],                 # A3:B3
         ["Até",      ate],                # A4:B4
-        [],                               # A5
+        ["", ""],                         # A5
         ["RECEITAS", receitas],           # A6:B6
         ["DESPESAS", despesas],           # A7:B7
-        [],                               # A8
+        ["", ""],                         # A8
         ["SALDO",    "=B6-B7"],          # A9:B9
     ]
     servico.spreadsheets().values().update(
