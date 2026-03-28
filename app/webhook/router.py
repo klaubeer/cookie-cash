@@ -12,6 +12,7 @@ router = APIRouter()
 
 @router.post("/webhook")
 async def receber_webhook(payload: PayloadWebhook):
+    logger.info(f"Webhook recebido — event={payload.event} chat_id={payload.data.key.remoteJid}")
 
     # Ignora eventos que não são mensagens recebidas
     if payload.event != "messages.upsert":
