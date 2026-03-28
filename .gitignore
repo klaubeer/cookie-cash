@@ -39,6 +39,13 @@ credentials.json
 service_account.json
 token.json
 
+# Claude Code
+.claude/
+
+# Scripts e arquivos de desenvolvimento
+gerar_planilha.py
+preview_planilha.xlsx
+
 # OS
 .DS_Store
 Thumbs.db

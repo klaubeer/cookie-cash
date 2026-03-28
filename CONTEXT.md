@@ -29,15 +29,6 @@
 
 ---
 
-## INFRAESTRUTURA
-
-- **VPS:** Ubuntu 24.04 — IP 69.62.94.19
-- **App:** `~/projetos/cookie-cash` — porta 8000
-- **Evolution API:** `https://evo.klauberfischer.online` — instância `fischa`
-- **Webhook configurado:** `http://69.62.94.19:8000/webhook`
-- **Google Sheets:** planilha `1rlm1E6UXZkVxcmvNPfcd94PFa5-zMEJ2_F08EFtvgak`
-
----
 
 ## DECISÕES ATIVAS — NÃO ALTERAR SEM DISCUSSÃO
 

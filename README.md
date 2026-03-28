@@ -84,42 +84,6 @@ O controle financeiro passa a acontecer de forma natural, no mesmo lugar onde o 
 
 ---
 
-## Estrutura de pastas
-
-```
-cookie-cash/
-├── PRD.md                       # Requisitos do produto
-├── SDD.md                       # Design do software (ADRs, arquitetura)
-├── CONTEXT.md                   # Estado atual do projeto (atualizado por sessão)
-├── docker-compose.yml
-├── .env.example
-│
-└── app/
-    ├── main.py                  # Entrypoint FastAPI — lifespan, rotas, worker
-    ├── config.py                # Lê variáveis de ambiente via pydantic-settings
-    │
-    ├── webhook/
-    │   ├── router.py            # POST /webhook — recebe eventos da Evolution API
-    │   └── schema.py            # Modelos Pydantic dos payloads da Evolution API
-    │
-    ├── processador/
-    │   ├── dispatcher.py        # Roteia mensagem para o handler correto
-    │   ├── extrator.py          # Monta prompts e chama GPT-4o mini
-    │   ├── confirmacao.py       # Gerencia confirmações pendentes (dict com TTL)
-    │   └── schema.py            # Modelos: Transacao, TipoTransacao
-    │
-    ├── integracoes/
-    │   ├── whatsapp.py          # Envia mensagens e baixa mídia via Evolution API
-    │   ├── sheets.py            # Append de linhas e leitura de resumo no Sheets
-    │   └── audio.py             # Transcrição de áudio via Whisper
-    │
-    └── utils/
-        ├── fila.py              # asyncio.Queue — serializa writes no Sheets
-        └── logging.py           # Logs estruturados em JSON
-```
-
----
-
 ## Arquitetura resumida
 
 O bot é uma aplicação **FastAPI** de processo único com dois componentes principais rodando de forma concorrente:
