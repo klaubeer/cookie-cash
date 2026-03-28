@@ -42,9 +42,17 @@ Se a imagem não for um recibo, retorne SOMENTE:
 Retorne SOMENTE JSON válido, sem texto adicional."""
 
 
+def _limpar_raw(raw: str) -> str:
+    raw = raw.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[-1]
+        raw = raw.rsplit("```", 1)[0]
+    return raw.strip()
+
+
 def _parse_resposta(raw: str) -> Transacao | None:
     try:
-        dados = json.loads(raw.strip())
+        dados = json.loads(_limpar_raw(raw))
     except json.JSONDecodeError:
         logger.error(f"Resposta do LLM não é JSON válido: {raw!r}")
         return None
