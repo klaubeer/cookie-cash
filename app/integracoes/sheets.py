@@ -83,33 +83,37 @@ def _configurar_resumo_sync() -> None:
     servico = _servico()
     sid = config.google_sheets_id
 
-    # Cabeçalho Lançamentos
-    servico.spreadsheets().values().update(
+    # Cabeçalho Lançamentos — só escreve se ainda não existir
+    existente = servico.spreadsheets().values().get(
         spreadsheetId=sid,
-        range="Lançamentos!A1:F1",
-        valueInputOption="USER_ENTERED",
-        body={"values": [["Data", "Tipo", "Descrição", "Valor (R$)", "Origem", "Timestamp"]]},
+        range="Lançamentos!A1",
     ).execute()
+    if not existente.get("values"):
+        servico.spreadsheets().values().update(
+            spreadsheetId=sid,
+            range="Lançamentos!A1:F1",
+            valueInputOption="USER_ENTERED",
+            body={"values": [["Data", "Tipo", "Descrição", "Valor (R$)", "Origem", "Timestamp"]]},
+        ).execute()
 
-    # Aba Resumo
+    # Aba Resumo — mês atual fixo, sem seletor de período
+    mes_inicio = '=DATE(YEAR(TODAY()),MONTH(TODAY()),1)'
+    mes_fim    = '=EOMONTH(TODAY(),0)'
+    receitas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)<=$B$3)*(Lançamentos!$B$2:$B$500="RECEITA")*IFERROR(Lançamentos!$D$2:$D$500,0))'
+    despesas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)<=$B$3)*(Lançamentos!$B$2:$B$500="DESPESA")*IFERROR(Lançamentos!$D$2:$D$500,0))'
     valores_resumo = [
-        ["Cookie Finance — Resumo"],                                                          # A1
-        [],                                                                                    # A2
-        [],                                                                                    # A3
-        ["Período", "Mês atual"],                                                             # A4:B4
-        ["De", '=IFS(B4="Mês atual",DATE(YEAR(TODAY()),MONTH(TODAY()),1),B4="Ano atual",DATE(YEAR(TODAY()),1,1),B4="Últimos 7 dias",TODAY()-7,B4="Últimos 30 dias",TODAY()-30)'],  # A5:B5
-        ["Até", '=IFS(B4="Mês atual",EOMONTH(TODAY(),0),B4="Ano atual",DATE(YEAR(TODAY()),12,31),B4="Últimos 7 dias",TODAY(),B4="Últimos 30 dias",TODAY())'],                    # A6:B6
-        [],                                                                                    # A7
-        [],                                                                                    # A8
-        [],                                                                                    # A9
-        ["RECEITAS", '=SUMPRODUCT((Lançamentos!$A$2:$A$1000>=$B$5)*(Lançamentos!$A$2:$A$1000<=$B$6)*(Lançamentos!$B$2:$B$1000="RECEITA")*Lançamentos!$D$2:$D$1000)'],          # A10:B10
-        ["DESPESAS", '=SUMPRODUCT((Lançamentos!$A$2:$A$1000>=$B$5)*(Lançamentos!$A$2:$A$1000<=$B$6)*(Lançamentos!$B$2:$B$1000="DESPESA")*Lançamentos!$D$2:$D$1000)'],          # A11:B11
-        [],                                                                                    # A12
-        ["SALDO", "=B10-B11"],                                                                # A13:B13
+        ["Cookie Finance — Resumo", ""],   # A1
+        ["De",   mes_inicio],              # A2:B2
+        ["Até",  mes_fim],                 # A3:B3
+        [],                                # A4
+        ["RECEITAS", receitas],            # A5:B5
+        ["DESPESAS", despesas],            # A6:B6
+        [],                                # A7
+        ["SALDO", "=B5-B6"],              # A8:B8
     ]
     servico.spreadsheets().values().update(
         spreadsheetId=sid,
-        range="Resumo!A1:B13",
+        range="Resumo!A1:B8",
         valueInputOption="USER_ENTERED",
         body={"values": valores_resumo},
     ).execute()
