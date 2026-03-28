@@ -97,10 +97,11 @@ def _configurar_resumo_sync() -> None:
         ).execute()
 
     # Aba Resumo — mês atual fixo, sem seletor de período
-    mes_inicio = '=DATE(YEAR(TODAY()),MONTH(TODAY()),1)'
-    mes_fim    = '=EOMONTH(TODAY(),0)'
-    receitas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)<=$B$3)*(Lançamentos!$B$2:$B$500="RECEITA")*IFERROR(Lançamentos!$D$2:$D$500,0))'
-    despesas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500),0)<=$B$3)*(Lançamentos!$B$2:$B$500="DESPESA")*IFERROR(Lançamentos!$D$2:$D$500,0))'
+    # Separador ";" para locale pt-BR do Google Sheets
+    mes_inicio = '=DATE(YEAR(TODAY());MONTH(TODAY());1)'
+    mes_fim    = '=EOMONTH(TODAY();0)'
+    receitas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$3)*(Lançamentos!$B$2:$B$500="RECEITA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
+    despesas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$3)*(Lançamentos!$B$2:$B$500="DESPESA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
     valores_resumo = [
         ["Cookie Finance — Resumo", ""],   # A1
         ["De",   mes_inicio],              # A2:B2
