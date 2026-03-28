@@ -9,6 +9,16 @@
 
 Bot de controle financeiro para negócio de cookies artesanais, operado inteiramente via WhatsApp. A usuária envia fotos de recibos, mensagens de texto ou áudios com vendas e despesas; uma IA extrai as informações e registra tudo em uma planilha Google Sheets com saldo em tempo real.
 
+## Por que esse projeto existe
+
+Pequenos negócios artesanais raramente têm um processo de controle financeiro estruturado. O dia a dia é corrido — produção, vendas, compras de insumos — e registrar cada movimentação em uma planilha exige disciplina, tempo e uma mudança de contexto que a maioria das pessoas simplesmente não faz.
+
+O resultado é previsível: no fim do mês, não se sabe com precisão quanto entrou, quanto saiu e se o negócio deu lucro de verdade.
+
+O Cookie Finance Bot resolve isso eliminando a fricção do registro. A usuária já usa o WhatsApp o dia inteiro; agora basta mandar uma mensagem como faria normalmente — "Joana levou 4 cookies, R$60", um áudio no trânsito ou a foto do recibo do mercado — e o bot cuida do resto. Nenhum app novo para aprender, nenhum formulário para preencher, nenhum dado perdido porque "vou lançar depois".
+
+O controle financeiro passa a acontecer de forma natural, no mesmo lugar onde o negócio já acontece.
+
 ---
 
 ## Como funciona
