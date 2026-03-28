@@ -2,10 +2,10 @@
 
 ## STATUS GERAL DO PROJETO
 
-- **Fase atual:** DESENVOLVIMENTO
-- **Milestone atual:** Implementação concluída — pronto para deploy e testes end-to-end
-- **Última decisão relevante:** TASK-10/11/12 implementadas — app 100% funcional, falta apenas configurar credenciais Google e fazer deploy
-- **Próximo passo:** Configurar `.env` com `GOOGLE_SHEETS_ID` e `GOOGLE_CREDENTIALS_JSON`, depois subir com `docker compose up --build`
+- **Fase atual:** PRODUÇÃO
+- **Milestone atual:** App em produção na VPS, todos os fluxos testados e funcionando
+- **Última decisão relevante:** Aba Resumo com dropdown de período (03/2026 em diante) + Total Geral sem filtro
+- **Próximo passo:** Monitorar uso em produção
 
 ---
 
@@ -14,17 +14,28 @@
 | Status | Feature | Observações |
 |--------|---------|-------------|
 | ✅ DONE | Estrutura base + Docker | TASK-01 |
-| ✅ DONE | Webhook Evolution API | TASK-02 |
+| ✅ DONE | Webhook Evolution API | TASK-02 — validação apikey removida (Evo v2 não envia) |
 | ✅ DONE | Fila assíncrona | TASK-03 |
-| ✅ DONE | WhatsApp send/download | TASK-04 |
-| ✅ DONE | Extrator LLM texto | TASK-05 |
+| ✅ DONE | WhatsApp send/download | TASK-04 — fix: passar key no getBase64FromMediaMessage |
+| ✅ DONE | Extrator LLM texto | TASK-05 — fix: strip markdown code block da resposta |
 | ✅ DONE | Transcrição áudio Whisper | TASK-06 |
 | ✅ DONE | Extrator LLM imagem | TASK-07 |
 | ✅ DONE | Dispatcher | TASK-08 |
 | ✅ DONE | Gerenciador de confirmações | TASK-09 |
 | ✅ DONE | Google Sheets | TASK-10 — adicionar_lancamento + obter_resumo_mes |
-| ✅ DONE | Comando /resumo | TASK-11 — retorna receitas/despesas/saldo do mês atual |
+| ✅ DONE | Comando /resumo | TASK-11 |
 | ✅ DONE | Hardening e deploy | TASK-12 — non-root user, .dockerignore, healthchecks |
+| ✅ DONE | Aba Resumo | Dropdown 03/2026 em diante + Total Geral |
+
+---
+
+## INFRAESTRUTURA
+
+- **VPS:** Ubuntu 24.04 — IP 69.62.94.19
+- **App:** `~/projetos/cookie-cash` — porta 8000
+- **Evolution API:** `https://evo.klauberfischer.online` — instância `fischa`
+- **Webhook configurado:** `http://69.62.94.19:8000/webhook`
+- **Google Sheets:** planilha `1rlm1E6UXZkVxcmvNPfcd94PFa5-zMEJ2_F08EFtvgak`
 
 ---
 
@@ -37,3 +48,4 @@
 - **Confiança mínima para salvar direto:** 0.85 — decidido em 27/03/2026
 - **Mensagens ignoradas:** tipo IGNORAR retornado pelo LLM, sem resposta no chat — decidido em 27/03/2026
 - **Workers uvicorn:** 1 worker (obrigatório — asyncio.Queue não é thread-safe entre workers) — decidido em 28/03/2026
+- **Webhook sem validação apikey:** Evolution API v2 não envia apikey no webhook — decidido em 28/03/2026
