@@ -79,6 +79,19 @@ def _obter_resumo_mes_sync() -> dict:
     }
 
 
+def _ultimos_12_meses() -> list[str]:
+    hoje = date.today()
+    meses = []
+    for i in range(12):
+        mes = hoje.month - i
+        ano = hoje.year
+        if mes <= 0:
+            mes += 12
+            ano -= 1
+        meses.append(f"{mes:02d}/{ano}")
+    return meses
+
+
 def _configurar_resumo_sync() -> None:
     servico = _servico()
     sid = config.google_sheets_id
@@ -96,28 +109,59 @@ def _configurar_resumo_sync() -> None:
             body={"values": [["Data", "Tipo", "Descrição", "Valor (R$)", "Origem", "Timestamp"]]},
         ).execute()
 
-    # Aba Resumo — mês atual fixo, sem seletor de período
-    # Separador ";" para locale pt-BR do Google Sheets
-    mes_inicio = '=DATE(YEAR(TODAY());MONTH(TODAY());1)'
-    mes_fim    = '=EOMONTH(TODAY();0)'
-    receitas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$3)*(Lançamentos!$B$2:$B$500="RECEITA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
-    despesas   = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$2)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$3)*(Lançamentos!$B$2:$B$500="DESPESA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
+    # Gera lista dos últimos 12 meses no formato MM/YYYY
+    meses = _ultimos_12_meses()
+    mes_atual = meses[0]
+
+    # Fórmulas — B2 contém o mês selecionado no formato MM/YYYY
+    # VALUE(LEFT(B2;2)) = mês, VALUE(RIGHT(B2;4)) = ano
+    de  = '=DATE(VALUE(RIGHT(B2;4));VALUE(LEFT(B2;2));1)'
+    ate = '=EOMONTH(DATE(VALUE(RIGHT(B2;4));VALUE(LEFT(B2;2));1);0)'
+    receitas = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$3)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$4)*(Lançamentos!$B$2:$B$500="RECEITA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
+    despesas = '=SUMPRODUCT((IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)>=$B$3)*(IFERROR(DATEVALUE(Lançamentos!$A$2:$A$500);0)<=$B$4)*(Lançamentos!$B$2:$B$500="DESPESA")*IFERROR(Lançamentos!$D$2:$D$500;0))'
+
     valores_resumo = [
-        ["Cookie Finance — Resumo", ""],   # A1
-        ["De",   mes_inicio],              # A2:B2
-        ["Até",  mes_fim],                 # A3:B3
-        [],                                # A4
-        ["RECEITAS", receitas],            # A5:B5
-        ["DESPESAS", despesas],            # A6:B6
-        [],                                # A7
-        ["SALDO", "=B5-B6"],              # A8:B8
+        ["Cookie Finance — Resumo", ""],  # A1
+        ["Período",  mes_atual],          # A2:B2  ← dropdown aqui
+        ["De",       de],                 # A3:B3
+        ["Até",      ate],                # A4:B4
+        [],                               # A5
+        ["RECEITAS", receitas],           # A6:B6
+        ["DESPESAS", despesas],           # A7:B7
+        [],                               # A8
+        ["SALDO",    "=B6-B7"],          # A9:B9
     ]
     servico.spreadsheets().values().update(
         spreadsheetId=sid,
-        range="Resumo!A1:B8",
+        range="Resumo!A1:B9",
         valueInputOption="USER_ENTERED",
         body={"values": valores_resumo},
     ).execute()
+
+    # Busca o sheetId da aba Resumo para aplicar data validation
+    meta = servico.spreadsheets().get(spreadsheetId=sid).execute()
+    sheet_id = next(
+        s["properties"]["sheetId"]
+        for s in meta["sheets"]
+        if s["properties"]["title"] == "Resumo"
+    )
+
+    # Dropdown com os últimos 12 meses na célula B2
+    opcoes = [{"userEnteredValue": m} for m in meses]
+    servico.spreadsheets().batchUpdate(
+        spreadsheetId=sid,
+        body={"requests": [{
+            "setDataValidation": {
+                "range": {"sheetId": sheet_id, "startRowIndex": 1, "endRowIndex": 2, "startColumnIndex": 1, "endColumnIndex": 2},
+                "rule": {
+                    "condition": {"type": "ONE_OF_LIST", "values": opcoes},
+                    "showCustomUi": True,
+                    "strict": True,
+                },
+            }
+        }]},
+    ).execute()
+
     logger.info("Aba Resumo configurada com sucesso")
 
 
