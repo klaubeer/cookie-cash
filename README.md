@@ -1,3 +1,5 @@
+[English version here](README-EN.md)
+
 # Cookie Finance Bot
 
 ![Python](https://img.shields.io/badge/Python-3.12-3776AB?style=flat&logo=python&logoColor=white)
@@ -115,3 +117,11 @@ A planilha tem duas abas:
 ## Licença
 
 Uso privado.
+
+---
+
+## Autor
+
+**Klauber Fischer** — AI Engineer especializado em LLM Applications, Multi-Agent Systems e RAG em produção.
+
+[linkedin.com/in/klaubeer](https://linkedin.com/in/klaubeer) · klaubeer@gmail.com
