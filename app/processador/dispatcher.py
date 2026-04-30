@@ -2,7 +2,7 @@ import logging
 
 from app.config import config
 from app.integracoes.audio import transcrever
-from app.integracoes.sheets import adicionar_lancamento, adicionar_pedido, obter_clientes, obter_resumo_mes
+from app.integracoes.sheets import adicionar_lancamento, adicionar_pedido, obter_clientes, obter_resumo_mes, obter_sabores
 from app.integracoes.whatsapp import baixar_midia_mensagem, enviar_texto
 from app.processador import confirmacao as confirmacao_mgr
 from app.processador.extrator import extrair_de_imagem, extrair_de_texto
@@ -16,6 +16,7 @@ _TIPOS_AUDIO  = {"audioMessage", "pttMessage"}
 _TIPOS_IMAGEM = {"imageMessage"}
 _COMANDO_RESUMO   = "/resumo"
 _COMANDO_CLIENTES = "/clientes"
+_COMANDO_SABORES  = "/sabores"
 
 
 async def despachar(payload: PayloadWebhook) -> None:
@@ -42,6 +43,10 @@ async def despachar(payload: PayloadWebhook) -> None:
 
         if texto and texto.strip().lower() == _COMANDO_CLIENTES:
             await _enviar_clientes(chat_id)
+            return
+
+        if texto and texto.strip().lower() == _COMANDO_SABORES:
+            await _enviar_sabores(chat_id)
             return
 
     transacao: Transacao | None = None
@@ -140,6 +145,22 @@ async def _enviar_clientes(chat_id: str) -> None:
     linhas = ["Clientes (acumulado):"]
     for c in clientes:
         linhas.append(f"• {c['cliente']}: {c['total_cookies']} cookies — R${c['total_valor']:.2f}")
+    await enviar_texto(chat_id, "\n".join(linhas))
+
+
+async def _enviar_sabores(chat_id: str) -> None:
+    try:
+        sabores = await obter_sabores()
+    except Exception as e:
+        logger.error(f"Erro ao buscar sabores — chat_id={chat_id} erro={e}")
+        await enviar_texto(chat_id, "Nao consegui buscar os sabores agora. Tente de novo em instantes.")
+        return
+    if not sabores:
+        await enviar_texto(chat_id, "Nenhum pedido registrado ainda.")
+        return
+    linhas = ["Sabores mais vendidos (acumulado):"]
+    for s in sabores:
+        linhas.append(f"• {s['sabor']}: {s['quantidade']} unidades")
     await enviar_texto(chat_id, "\n".join(linhas))
 
 

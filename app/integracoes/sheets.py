@@ -233,6 +233,35 @@ def _obter_clientes_sync() -> list[dict]:
     return sorted(totais.values(), key=lambda x: x["total_cookies"], reverse=True)
 
 
+def _obter_sabores_sync() -> list[dict]:
+    servico = _servico()
+    result = servico.spreadsheets().values().get(
+        spreadsheetId=config.google_sheets_id,
+        range=f"{_ABA_PEDIDOS}!C2:C",
+    ).execute()
+    linhas = result.get("values", [])
+    totais: dict[str, int] = {}
+    for linha in linhas:
+        if not linha:
+            continue
+        for parte in linha[0].split(","):
+            parte = parte.strip()
+            if not parte:
+                continue
+            try:
+                espaco = parte.index(" ")
+                qtd = int(parte[:espaco])
+                sabor = parte[espaco + 1:].strip().lower()
+            except (ValueError, IndexError):
+                continue
+            totais[sabor] = totais.get(sabor, 0) + qtd
+    return sorted(
+        [{"sabor": s, "quantidade": q} for s, q in totais.items()],
+        key=lambda x: x["quantidade"],
+        reverse=True,
+    )
+
+
 def _configurar_pedidos_sync() -> None:
     servico = _servico()
     sid = config.google_sheets_id
@@ -271,6 +300,10 @@ async def adicionar_pedido(transacao: Transacao) -> None:
 
 async def obter_clientes() -> list[dict]:
     return await asyncio.to_thread(_obter_clientes_sync)
+
+
+async def obter_sabores() -> list[dict]:
+    return await asyncio.to_thread(_obter_sabores_sync)
 
 
 async def obter_resumo_mes() -> dict:
