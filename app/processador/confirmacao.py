@@ -71,6 +71,13 @@ def tem_pendente(chat_id: str) -> bool:
 
 def formatar_pergunta(transacao: Transacao) -> str:
     tipo = "Venda" if transacao.tipo.value == "RECEITA" else "Compra"
+    if transacao.cliente and transacao.itens:
+        itens_str = "\n".join(f"  • {i.quantidade} {i.descricao}" for i in transacao.itens)
+        return (
+            f"Entendi: {tipo} de R${transacao.valor:.2f} para {transacao.cliente}\n"
+            f"{itens_str}\n"
+            f"em {transacao.data.strftime('%d/%m/%Y')}. Correto? (sim/nao)"
+        )
     return (
         f"Entendi: {tipo} de R${transacao.valor:.2f} — {transacao.descricao} "
         f"em {transacao.data.strftime('%d/%m/%Y')}. Correto? (sim/nao)"

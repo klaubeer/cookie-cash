@@ -2,7 +2,7 @@ import logging
 
 from app.config import config
 from app.integracoes.audio import transcrever
-from app.integracoes.sheets import adicionar_lancamento, obter_resumo_mes
+from app.integracoes.sheets import adicionar_lancamento, adicionar_pedido, obter_clientes, obter_resumo_mes
 from app.integracoes.whatsapp import baixar_midia_mensagem, enviar_texto
 from app.processador import confirmacao as confirmacao_mgr
 from app.processador.extrator import extrair_de_imagem, extrair_de_texto
@@ -14,7 +14,8 @@ logger = logging.getLogger(__name__)
 _TIPOS_TEXTO  = {"conversation", "extendedTextMessage"}
 _TIPOS_AUDIO  = {"audioMessage", "pttMessage"}
 _TIPOS_IMAGEM = {"imageMessage"}
-_COMANDO_RESUMO = "/resumo"
+_COMANDO_RESUMO   = "/resumo"
+_COMANDO_CLIENTES = "/clientes"
 
 
 async def despachar(payload: PayloadWebhook) -> None:
@@ -34,9 +35,13 @@ async def despachar(payload: PayloadWebhook) -> None:
             await _resolver_confirmacao(chat_id, texto)
             return
 
-        # Comando /resumo
+        # Comandos
         if texto and texto.strip().lower() == _COMANDO_RESUMO:
             await _enviar_resumo(chat_id)
+            return
+
+        if texto and texto.strip().lower() == _COMANDO_CLIENTES:
+            await _enviar_clientes(chat_id)
             return
 
     transacao: Transacao | None = None
@@ -93,6 +98,8 @@ async def despachar(payload: PayloadWebhook) -> None:
 async def _encaminhar_transacao(chat_id: str, transacao: Transacao) -> None:
     if transacao.confianca >= config.confianca_min:
         await adicionar_lancamento(transacao)
+        if transacao.cliente:
+            await adicionar_pedido(transacao)
         tipo_str = "Venda" if transacao.tipo.value == "RECEITA" else "Compra"
         await enviar_texto(
             chat_id,
@@ -108,6 +115,8 @@ async def _resolver_confirmacao(chat_id: str, resposta: str) -> None:
     transacao = confirmacao_mgr.resolver(chat_id, resposta)
     if transacao:
         await adicionar_lancamento(transacao)
+        if transacao.cliente:
+            await adicionar_pedido(transacao)
         tipo_str = "Venda" if transacao.tipo.value == "RECEITA" else "Compra"
         await enviar_texto(
             chat_id,
@@ -116,6 +125,22 @@ async def _resolver_confirmacao(chat_id: str, resposta: str) -> None:
         )
     else:
         await enviar_texto(chat_id, "Ok, ignorei esse lancamento.")
+
+
+async def _enviar_clientes(chat_id: str) -> None:
+    try:
+        clientes = await obter_clientes()
+    except Exception as e:
+        logger.error(f"Erro ao buscar clientes — chat_id={chat_id} erro={e}")
+        await enviar_texto(chat_id, "Nao consegui buscar os clientes agora. Tente de novo em instantes.")
+        return
+    if not clientes:
+        await enviar_texto(chat_id, "Nenhum pedido registrado ainda.")
+        return
+    linhas = ["Clientes (acumulado):"]
+    for c in clientes:
+        linhas.append(f"• {c['cliente']}: {c['total_cookies']} cookies — R${c['total_valor']:.2f}")
+    await enviar_texto(chat_id, "\n".join(linhas))
 
 
 async def _enviar_resumo(chat_id: str) -> None:

@@ -10,6 +10,11 @@ class TipoTransacao(str, Enum):
     IGNORAR = "IGNORAR"
 
 
+class ItemVenda(BaseModel):
+    descricao: str
+    quantidade: int
+
+
 class Transacao(BaseModel):
     tipo: TipoTransacao
     descricao: str
@@ -17,3 +22,5 @@ class Transacao(BaseModel):
     data: date
     confianca: float
     origem: str = "texto"
+    cliente: str | None = None
+    itens: list[ItemVenda] = []

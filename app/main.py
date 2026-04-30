@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.config import config
-from app.integracoes.sheets import configurar_resumo
+from app.integracoes.sheets import configurar_pedidos, configurar_resumo
 from app.utils.fila import worker
 from app.webhook.router import router as webhook_router
 
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     logger.info("Cookie Finance Bot iniciando")
     await configurar_resumo()
+    await configurar_pedidos()
     tarefa_worker = asyncio.create_task(worker())
     yield
     tarefa_worker.cancel()

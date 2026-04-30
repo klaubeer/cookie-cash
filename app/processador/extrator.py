@@ -6,7 +6,7 @@ from datetime import date
 from openai import AsyncOpenAI
 
 from app.config import config
-from app.processador.schema import TipoTransacao, Transacao
+from app.processador.schema import ItemVenda, TipoTransacao, Transacao
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +22,13 @@ Mensagem: "{mensagem}"
 Data atual: {data_hoje}
 
 Se RECEITA ou DESPESA, retorne SOMENTE este JSON:
-{{"tipo": "RECEITA" ou "DESPESA", "descricao": "descrição curta", "valor": número, "data": "YYYY-MM-DD", "confianca": número entre 0 e 1}}
+{{"tipo": "RECEITA" ou "DESPESA", "descricao": "descrição curta", "valor": número, "data": "YYYY-MM-DD", "confianca": número entre 0 e 1, "cliente": "nome do cliente ou null", "itens": [{{"descricao": "sabor/tipo do cookie", "quantidade": número}}]}}
+
+O campo "cliente" deve ser preenchido somente quando a mensagem contiver o nome de um cliente (ex: "Debi", "Madalena"). Caso contrário, use null.
+O campo "itens" deve listar os cookies pedidos com quantidade e descrição. Se não houver itens identificáveis, use [].
+
+Exemplos de mensagem com cliente e itens:
+"Debi\n1 de laranja\n1 limão\n24,00" → cliente="Debi", itens=[{{"descricao":"laranja","quantidade":1}},{{"descricao":"limão","quantidade":1}}]
 
 Se IGNORAR, retorne SOMENTE:
 {{"tipo": "IGNORAR"}}
@@ -68,12 +74,16 @@ def _parse_resposta(raw: str) -> Transacao | None:
         )
 
     try:
+        itens_raw = dados.get("itens") or []
+        itens = [ItemVenda(descricao=i["descricao"], quantidade=int(i["quantidade"])) for i in itens_raw if i.get("descricao")]
         return Transacao(
             tipo=TipoTransacao(tipo_str),
             descricao=dados["descricao"],
             valor=float(dados["valor"]),
             data=date.fromisoformat(dados["data"]),
             confianca=float(dados["confianca"]),
+            cliente=dados.get("cliente") or None,
+            itens=itens,
         )
     except (KeyError, ValueError) as e:
         logger.error(f"Campos inválidos na resposta do LLM: {dados} — {e}")

@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 _SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
 _ABA = "Lançamentos"
+_ABA_PEDIDOS = "Pedidos"
 _MESES = [
     "janeiro", "fevereiro", "março", "abril", "maio", "junho",
     "julho", "agosto", "setembro", "outubro", "novembro", "dezembro",
@@ -184,8 +185,92 @@ def _configurar_resumo_sync() -> None:
     logger.info("Aba Resumo configurada com sucesso")
 
 
+def _adicionar_pedido_sync(transacao: Transacao) -> None:
+    if not transacao.cliente:
+        return
+    servico = _servico()
+    itens_str = ", ".join(f"{i.quantidade} {i.descricao}" for i in transacao.itens)
+    total_cookies = sum(i.quantidade for i in transacao.itens)
+    linha = [
+        transacao.data.strftime("%d/%m/%Y"),
+        transacao.cliente,
+        itens_str,
+        total_cookies,
+        transacao.valor,
+        datetime.now().isoformat(timespec="seconds"),
+    ]
+    servico.spreadsheets().values().append(
+        spreadsheetId=config.google_sheets_id,
+        range=f"{_ABA_PEDIDOS}!A:F",
+        valueInputOption="USER_ENTERED",
+        insertDataOption="INSERT_ROWS",
+        body={"values": [linha]},
+    ).execute()
+    logger.info(f"Pedido salvo — cliente={transacao.cliente} cookies={total_cookies}")
+
+
+def _obter_clientes_sync() -> list[dict]:
+    servico = _servico()
+    result = servico.spreadsheets().values().get(
+        spreadsheetId=config.google_sheets_id,
+        range=f"{_ABA_PEDIDOS}!A2:F",
+    ).execute()
+    linhas = result.get("values", [])
+    totais: dict[str, dict] = {}
+    for linha in linhas:
+        if len(linha) < 5:
+            continue
+        try:
+            cliente = linha[1].strip()
+            total_cookies = int(float(str(linha[3]).replace(",", ".")))
+            valor = float(str(linha[4]).replace(",", ".").replace("R$", "").strip())
+        except (ValueError, IndexError):
+            continue
+        if cliente not in totais:
+            totais[cliente] = {"cliente": cliente, "total_cookies": 0, "total_valor": 0.0}
+        totais[cliente]["total_cookies"] += total_cookies
+        totais[cliente]["total_valor"] += valor
+    return sorted(totais.values(), key=lambda x: x["total_cookies"], reverse=True)
+
+
+def _configurar_pedidos_sync() -> None:
+    servico = _servico()
+    sid = config.google_sheets_id
+
+    meta = servico.spreadsheets().get(spreadsheetId=sid).execute()
+    abas_existentes = {s["properties"]["title"] for s in meta["sheets"]}
+
+    if _ABA_PEDIDOS not in abas_existentes:
+        servico.spreadsheets().batchUpdate(
+            spreadsheetId=sid,
+            body={"requests": [{"addSheet": {"properties": {"title": _ABA_PEDIDOS}}}]},
+        ).execute()
+        logger.info(f"Aba '{_ABA_PEDIDOS}' criada")
+
+    existente = servico.spreadsheets().values().get(
+        spreadsheetId=sid,
+        range=f"{_ABA_PEDIDOS}!A1",
+    ).execute()
+    if not existente.get("values"):
+        servico.spreadsheets().values().update(
+            spreadsheetId=sid,
+            range=f"{_ABA_PEDIDOS}!A1:F1",
+            valueInputOption="USER_ENTERED",
+            body={"values": [["Data", "Cliente", "Itens", "Total Cookies", "Valor (R$)", "Timestamp"]]},
+        ).execute()
+        logger.info("Cabeçalho da aba Pedidos configurado")
+
+
 async def adicionar_lancamento(transacao: Transacao) -> None:
     await asyncio.to_thread(_adicionar_lancamento_sync, transacao)
+
+
+async def adicionar_pedido(transacao: Transacao) -> None:
+    await asyncio.to_thread(_adicionar_pedido_sync, transacao)
+
+
+async def obter_clientes() -> list[dict]:
+    return await asyncio.to_thread(_obter_clientes_sync)
 
 
 async def obter_resumo_mes() -> dict:
@@ -194,3 +279,7 @@ async def obter_resumo_mes() -> dict:
 
 async def configurar_resumo() -> None:
     await asyncio.to_thread(_configurar_resumo_sync)
+
+
+async def configurar_pedidos() -> None:
+    await asyncio.to_thread(_configurar_pedidos_sync)
